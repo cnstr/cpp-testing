@@ -28,7 +28,7 @@ private:
 	int indexSimpleRepository();
 	int indexDistributionRepository();
 
-	// std::string fetch_packages_xz(std::string url);
+	std::string fetch_packages_xz(std::string url);
 	std::string fetch_packages_gzip(std::string url);
 	std::string fetch_packages_zstd(std::string url);
 	std::string fetch_packages_bzip2(std::string url);
