@@ -310,12 +310,12 @@ std::string RepositoryParser::curl_generic_url(std::string url) {
 		// The blank string is ignored by the individual fetch methods
 		long status_code = curlpp::infos::ResponseCode::get(curl_handle);
 		if (status_code != 200) {
-			throw std::runtime_error(url + ": Invalid Status Code - " + std::to_string(status_code));
+			throw std::runtime_error("Status Code - " + std::to_string(status_code));
 		}
 
 		std::string response_data = response_stream.str();
 		if (response_data.empty()) {
-			throw std::runtime_error(url + ": Empty response buffer");
+			throw std::runtime_error("Empty response buffer");
 		}
 
 		// We need to normalize filenames for the FS by removing slashes and dots
@@ -335,11 +335,7 @@ std::string RepositoryParser::curl_generic_url(std::string url) {
 		out.close();
 
 		return file_name;
-	} catch (curlpp::RuntimeError &exc) {
-		throw std::runtime_error(url + ": cURL Runtime Error - " + exc.what());
-	} catch (curlpp::LogicError &exc) {
-		throw std::runtime_error(url + ": cURL Logic Error - " + exc.what());
 	} catch (std::exception &exc) {
-		throw std::runtime_error(url + ": Error - " + exc.what());
+		throw std::runtime_error(exc.what());
 	}
 }
