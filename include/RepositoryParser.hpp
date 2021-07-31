@@ -18,15 +18,15 @@ public:
 	RepositoryParser(std::string url, std::string dist, std::string suite);
 	RepositoryParser() {};
 	~RepositoryParser() {};
-	int indexRepository();
+	int index_repository();
 
 private:
 	std::string url, dist, suite;
-	std::string fetchPackages(std::string url);
-	std::map<std::string, std::string> mapPackage(std::stringstream stream);
+	std::string fetch_packages(std::string url);
+	std::map<std::string, std::string> map_package(std::stringstream stream);
 
-	int indexSimpleRepository();
-	int indexDistributionRepository();
+	int index_simple_repository();
+	int index_distribution_repository();
 
 	std::string fetch_packages_xz(std::string url);
 	std::string fetch_packages_gzip(std::string url);

@@ -11,15 +11,15 @@ RepositoryParser::RepositoryParser(std::string url, std::string dist, std::strin
 	this->suite = suite;
 }
 
-int RepositoryParser::indexRepository() {
+int RepositoryParser::index_repository() {
 	if (dist.empty() && suite.empty()) {
-		return indexSimpleRepository();
+		return index_simple_repository();
 	} else {
-		return indexDistributionRepository();
+		return index_distribution_repository();
 	}
 }
 
-int RepositoryParser::indexSimpleRepository() {
+int RepositoryParser::index_simple_repository() {
 	if (url.size() == 0) {
 		return -1;
 	}
@@ -28,7 +28,7 @@ int RepositoryParser::indexSimpleRepository() {
 		url.pop_back();
 	}
 
-	std::string content = fetchPackages(url);
+	std::string content = fetch_packages(url);
 
 	size_t start;
 	size_t end = 0;
@@ -39,7 +39,7 @@ int RepositoryParser::indexSimpleRepository() {
 		end = content.find("\n\n", start);
 
 		// We want to do each package on a separate thread (hopefully BigBoss plays nicely)
-		package_threads.push_back(std::async(&RepositoryParser::mapPackage, this, std::stringstream(content.substr(start, end - start))));
+		package_threads.push_back(std::async(&RepositoryParser::map_package, this, std::stringstream(content.substr(start, end - start))));
 	}
 
 	for (auto &result: package_threads) {
@@ -49,11 +49,11 @@ int RepositoryParser::indexSimpleRepository() {
 	return packages.size();
 }
 
-int RepositoryParser::indexDistributionRepository() {
+int RepositoryParser::index_distribution_repository() {
 	return 0;
 }
 
-std::string RepositoryParser::fetchPackages(std::string url) {
+std::string RepositoryParser::fetch_packages(std::string url) {
 	try {
 		// ZSTD
 		std::string zstd_buffer = fetch_packages_zstd(url);
@@ -67,7 +67,7 @@ std::string RepositoryParser::fetchPackages(std::string url) {
 	return std::string();
 }
 
-std::map<std::string, std::string> RepositoryParser::mapPackage(std::stringstream stream) {
+std::map<std::string, std::string> RepositoryParser::map_package(std::stringstream stream) {
 	std::map<std::string, std::string> control_map;
 	std::string line, previousKey;
 
