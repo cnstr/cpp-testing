@@ -34,8 +34,11 @@ target_link_libraries(canister-core
 	${LIB_DATE}
 	pthread
 	crypto
+	zstd
 	curl
+	lzma
 	ssl
+	bz2
 	uv
 	z
 )
