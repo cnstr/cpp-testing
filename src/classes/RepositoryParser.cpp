@@ -59,6 +59,10 @@ std::string RepositoryParser::fetch_packages(std::string url) {
 		std::string zstd_buffer = fetch_packages_zstd(url);
 		if (!zstd_buffer.empty()) return zstd_buffer;
 
+		// GZip
+		std::string gzip_buffer = fetch_packages_gzip(url);
+		if (!gzip_buffer.empty()) return gzip_buffer;
+
 
 	} catch (std::exception &exc) {
 		std::cout << exc.what() << std::endl;
@@ -97,6 +101,85 @@ std::map<std::string, std::string> RepositoryParser::map_package(std::stringstre
 	}
 
 	return control_map;
+}
+
+std::string RepositoryParser::fetch_packages_gzip(std::string url) {
+	try {
+		// Write the response data to a file and decompress it
+		std::string file_name = curl_generic_url(url + "/Packages.gz");
+		std::ifstream cache_file(("/tmp/" + file_name).c_str());
+		if (!cache_file.is_open()) {
+			throw std::runtime_error(url + ": Failed to open compressed file - GZip");
+		}
+
+		// Converts our ifstream to a string using streambuf iterators
+		std::string buffer_data = std::string((std::istreambuf_iterator<char>(cache_file)), std::istreambuf_iterator<char>());
+		std::string output_data;
+		size_t max_size(16384);
+		z_stream inflate_stream;
+
+		// zLIB why do you feel a need
+		inflate_stream.zalloc = Z_NULL;
+		inflate_stream.zfree = Z_NULL;
+		inflate_stream.opaque = Z_NULL;
+		inflate_stream.next_in = Z_NULL;
+		inflate_stream.avail_in = 0;
+
+		// windowBits 15
+		// ENABLE_ZLIB_GZIP 32
+		int status = inflateInit2(&inflate_stream, 15 | 32);
+		if (status < 0) {
+			throw std::runtime_error(url + ": GZip failed to initialize zLIB inflate");
+		}
+
+		std::size_t inflated_size = 0;
+		std::size_t buffer_size = buffer_data.size();
+
+		// Because of zLIB's weird pointer magic, we need to reinterpret this as a pointer first
+		inflate_stream.next_in = reinterpret_cast<z_const Bytef *>(buffer_data.data());
+		if (buffer_size > max_size || (buffer_size * 2) > max_size) {
+			inflateEnd(&inflate_stream);
+			throw std::runtime_error(url + ": GZip inflate may use more memory due to size");
+		}
+
+		inflate_stream.avail_in = static_cast<unsigned int>(buffer_size);
+
+		do {
+			// The string buffer needs a reference of it's next resize so it may expand to fit data
+			std::size_t next_resize = inflated_size + 2 * buffer_size;
+
+			if (next_resize > max_size) {
+				inflateEnd(&inflate_stream);
+				throw std::runtime_error(url + ": GZip decompression reference size exceeds max size");
+			}
+
+			output_data.resize(next_resize);
+
+			// Expand the size of our zLIB stream too so it can continue inflating
+			inflate_stream.avail_out = static_cast<unsigned int>(2 * buffer_size);
+			inflate_stream.next_out = reinterpret_cast<Bytef *>(&output_data[0] + inflated_size);
+
+			int inflate_status = inflate(&inflate_stream, Z_FINISH);
+
+			// If this happens we didn't reach Z_FINISH and the buffer is just dead
+			if (inflate_status != Z_STREAM_END && inflate_status != Z_OK && inflate_status != Z_BUF_ERROR) {
+				std::string error_message = inflate_stream.msg;
+				inflateEnd(&inflate_stream);
+
+				throw std::runtime_error(url + ": GZip finish error: zLIB - " + error_message);
+			}
+
+			inflated_size += (2 * buffer_size - inflate_stream.avail_out);
+		} while (inflate_stream.avail_out == 0);
+
+		inflateEnd(&inflate_stream);
+		output_data.resize(inflated_size);
+
+		return output_data;
+	} catch (std::exception &exc) {
+		std::cout << exc.what() << std::endl;
+		return std::string();
+	}
 }
 
 std::string RepositoryParser::fetch_packages_zstd(std::string url) {
