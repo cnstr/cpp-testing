@@ -97,6 +97,7 @@ int main() {
 					};
 
 					ws->send(response.dump(), uWS::OpCode::TEXT, true);
+					std::cout << exc.what() << std::endl;
 					return;
 				}
 			} catch (nlohmann::detail::exception &exc) {
