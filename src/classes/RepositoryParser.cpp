@@ -50,7 +50,30 @@ int RepositoryParser::index_simple_repository() {
 }
 
 int RepositoryParser::index_distribution_repository() {
-	return 0;
+	if (url.ends_with("/")) {
+		url.pop_back();
+	}
+
+	std::string fetch_url = url + "/dists/" + dist + "/" + suite + "/binary-iphoneos-arm";
+	std::string content = fetch_packages(fetch_url);
+
+	size_t start;
+	size_t end = 0;
+	std::vector<std::map<std::string, std::string>> packages;
+	std::vector<std::future<std::map<std::string, std::string>>> package_threads;
+
+	while ((start = content.find_first_not_of("\n\n", end)) != std::string::npos) {
+		end = content.find("\n\n", start);
+
+		// We want to do each package on a separate thread (hopefully BigBoss plays nicely)
+		package_threads.push_back(std::async(&RepositoryParser::map_package, this, std::stringstream(content.substr(start, end - start))));
+	}
+
+	for (auto &result: package_threads) {
+		packages.push_back(result.get());
+	}
+
+	return packages.size();
 }
 
 std::string RepositoryParser::fetch_packages(std::string url) {
