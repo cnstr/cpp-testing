@@ -1,4 +1,5 @@
 #include "RepositoryParser.hpp"
+#include <fstream>
 
 RepositoryParser::RepositoryParser(std::string url) {
 	this->url = url;
@@ -10,7 +11,7 @@ RepositoryParser::RepositoryParser(std::string url, std::string dist, std::strin
 	this->suite = suite;
 }
 
-void RepositoryParser::indexRepository() {
+int RepositoryParser::indexRepository() {
 	if (dist.empty() && suite.empty()) {
 		return indexSimpleRepository();
 	} else {
@@ -18,9 +19,9 @@ void RepositoryParser::indexRepository() {
 	}
 }
 
-void RepositoryParser::indexSimpleRepository() {
+int RepositoryParser::indexSimpleRepository() {
 	if (url.size() == 0) {
-		return;
+		return -1;
 	}
 
 	if (url.ends_with("/")) {
