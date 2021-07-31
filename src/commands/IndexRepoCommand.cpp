@@ -4,16 +4,24 @@ void IndexRepoCommand::execute(uWS::WebSocket<false, true, std::string> *ws, nlo
 	// Iterate through all of our repos and decide how we need to construct RepositoryParser
 	for (auto iter = payload.begin(); iter != payload.end(); ++iter) {
 		const auto object = iter.value();
+		RepositoryParser *parser;
 
 		if (object.contains("dist") && object.contains("suite")) {
 
 		} else {
-			RepositoryParser parser(object["uri"].get<std::string>());
-			parser.indexRepository();
+			parser = new RepositoryParser(object["uri"].get<std::string>());
 		}
-	}
 
-	ws->send("hello", uWS::TEXT, true);
+		int packageCount = parser->index_repository();
+		nlohmann::json response = {
+			{"status", "Repository Completed"},
+			{"date", date::format("%F %T", std::chrono::system_clock::now())},
+			{"package_count", packageCount},
+			{"repository_url", object["uri"]}
+		};
+
+		ws->send(response.dump(), uWS::OpCode::TEXT, true);
+	}
 }
 
 nlohmann::json IndexRepoCommand::schema() {
