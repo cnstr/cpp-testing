@@ -59,11 +59,13 @@ std::string RepositoryParser::fetch_packages(std::string url) {
 		std::string zstd_buffer = fetch_packages_zstd(url);
 		if (!zstd_buffer.empty()) return zstd_buffer;
 
+		// BZip2
+		std::string bzip2_buffer = fetch_packages_bzip2(url);
+		if (!bzip2_buffer.empty()) return bzip2_buffer;
+
 		// GZip
 		std::string gzip_buffer = fetch_packages_gzip(url);
 		if (!gzip_buffer.empty()) return gzip_buffer;
-
-
 	} catch (std::exception &exc) {
 		std::cout << exc.what() << std::endl;
 	}
@@ -286,6 +288,72 @@ std::string RepositoryParser::fetch_packages_zstd(std::string url) {
 	}
 }
 
+std::string RepositoryParser::fetch_packages_bzip2(std::string url) {
+	try {
+		// Write the response data to a file and decompress it
+		std::string file_name = curl_generic_url(url + "/Packages.bz2");
+		std::string out_cache_name = ("/tmp/" + file_name + "_decompressed");
+
+		FILE *const file_in = fopen(("/tmp/" + file_name).c_str(), "rb");
+		FILE *const file_out = fopen(out_cache_name.c_str(), "wb+");
+		char output_buffer[4096];
+
+		if (!file_in) {
+			fclose(file_out);
+			throw std::runtime_error(url + ": Failed to open compressed file - BZip2");
+		}
+
+		if (!file_out) {
+			fclose(file_in);
+			throw std::runtime_error(url + ": Failed to create decompressed file - BZip2");
+		}
+
+		int status = 0;
+		BZFILE *bzip_handle = BZ2_bzReadOpen(&status, file_in, 0, 0, NULL, 0);
+
+		if (status != BZ_OK) {
+			BZ2_bzReadClose(&status, bzip_handle);
+			fclose(file_out);
+			fclose(file_in);
+
+			throw std::runtime_error(url + ": Failed to transfer BZip2 file to BZFILE");
+		}
+
+		do {
+			int read_position = BZ2_bzRead(&status, bzip_handle, output_buffer, sizeof output_buffer);
+			if (status == BZ_OK || status == BZ_STREAM_END) {
+				fwrite(output_buffer, 1, read_position, file_out);
+			}
+		} while (status == BZ_OK);
+
+		if (status != BZ_STREAM_END) {
+			BZ2_bzReadClose(&status, &bzip_handle);
+			fclose(file_out);
+			fclose(file_in);
+
+			throw std::runtime_error(url + ": EOF before end of stream - " + BZ2_bzerror(&bzip_handle, &status));
+		}
+
+		fclose(file_out);
+		fclose(file_in);
+
+		std::ifstream cache_file(out_cache_name);
+		if (!cache_file.is_open()) {
+			throw std::runtime_error(url + ": BZip2 cache file not opened");
+		}
+
+		// Converts our ifstream to a string using streambuf iterators
+		std::string cache_data = std::string((std::istreambuf_iterator<char>(cache_file)), std::istreambuf_iterator<char>());
+
+		// Delete our cache file and then return
+		std::remove(out_cache_name.c_str());
+		return cache_data;
+	} catch (std::exception &exc) {
+		std::cout << exc.what() << std::endl;
+		return std::string();
+	}
+}
+
 std::string RepositoryParser::curl_generic_url(std::string url) {
 	try {
 		curlpp::Easy curl_handle;
@@ -310,12 +378,12 @@ std::string RepositoryParser::curl_generic_url(std::string url) {
 		// The blank string is ignored by the individual fetch methods
 		long status_code = curlpp::infos::ResponseCode::get(curl_handle);
 		if (status_code != 200) {
-			throw std::runtime_error("Status Code - " + std::to_string(status_code));
+			throw std::runtime_error(url + ": Status Code - " + std::to_string(status_code));
 		}
 
 		std::string response_data = response_stream.str();
 		if (response_data.empty()) {
-			throw std::runtime_error("Empty response buffer");
+			throw std::runtime_error(url + ": Empty response buffer");
 		}
 
 		// We need to normalize filenames for the FS by removing slashes and dots
