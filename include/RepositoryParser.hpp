@@ -32,5 +32,6 @@ private:
 	std::string fetch_packages_gzip(std::string url);
 	std::string fetch_packages_zstd(std::string url);
 	std::string fetch_packages_bzip2(std::string url);
+	std::string fetch_packages_normal(std::string url);
 	std::string curl_generic_url(std::string url);
 };

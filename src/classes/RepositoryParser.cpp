@@ -89,6 +89,12 @@ std::string RepositoryParser::fetch_packages(std::string url) {
 		// GZip
 		std::string gzip_buffer = fetch_packages_gzip(url);
 		if (!gzip_buffer.empty()) return gzip_buffer;
+
+		// Normal
+		std::string normal_buffer = fetch_packages_normal(url);
+		if (!normal_buffer.empty()) return normal_buffer;
+
+		throw std::runtime_error(url + ": No Packages file found");
 	} catch (std::exception &exc) {
 		std::cout << exc.what() << std::endl;
 	}
@@ -370,6 +376,24 @@ std::string RepositoryParser::fetch_packages_bzip2(std::string url) {
 
 		// Delete our cache file and then return
 		std::remove(out_cache_name.c_str());
+		return cache_data;
+	} catch (std::exception &exc) {
+		std::cout << exc.what() << std::endl;
+		return std::string();
+	}
+}
+
+std::string RepositoryParser::fetch_packages_normal(std::string url) {
+	try {
+		// Write the response data to a file and decompress it
+		std::string file_name = curl_generic_url(url + "/Packages");
+		std::ifstream cache_file(file_name);
+		if (!cache_file.is_open()) {
+			throw std::runtime_error(url + ": Normal cache file not opened");
+		}
+
+		// Converts our ifstream to a string using streambuf iterators
+		std::string cache_data = std::string((std::istreambuf_iterator<char>(cache_file)), std::istreambuf_iterator<char>());
 		return cache_data;
 	} catch (std::exception &exc) {
 		std::cout << exc.what() << std::endl;
