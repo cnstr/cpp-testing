@@ -1,0 +1,53 @@
+FROM ubuntu:rolling
+WORKDIR /app
+
+RUN apt-get update \
+	&& DEBIAN_FRONTEND=noninteractive apt-get -qq install build-essential cmake make zlib1g-dev libssl-dev git libzstd-dev liblzma-dev nlohmann-json3-dev libcurl4-openssl-dev libbz2-dev \
+	&& git clone --recursive https://github.com/uWebSockets/uWebSockets \
+	&& cd uWebSockets \
+	&& mkdir -p /usr/local/include/uWebSockets \
+	&& cp src/* /usr/local/include/uWebSockets \
+	&& cd uSockets \
+	&& make \
+	&& cp uSockets.a /usr/local/lib \
+	&& cp src/libusockets.h /usr/local/include \
+	&& cd ../.. \
+	&& rm -rf uWebSockets \
+	&& git clone https://github.com/pboettch/json-schema-validator \
+	&& cd json-schema-validator \
+	&& mkdir build \
+	&& cd build \
+	&& cmake .. \
+	&& make \
+	&& make install \
+	&& cd ../.. \
+	&& rm -rf json-schema-validator \
+	&& git clone https://github.com/jpbarrette/curlpp \
+	&& cd curlpp \
+	&& mkdir build \
+	&& cd build \
+	&& cmake .. \
+	&& make \
+	&& make install \
+	&& cd ../.. \
+	&& rm -rf curlpp \
+	&& git clone https://github.com/HowardHinnant/date \
+	&& cd date \
+	&& mkdir build \
+	&& cd build \
+	&& cmake .. -DBUILD_TZ_LIB=ON \
+	&& make \
+	&& make install \
+	&& cd ../.. \
+	&& rm -rf date
+COPY . .
+
+RUN mkdir build && \
+	cd build && \
+	cmake .. && \
+	make && \
+	mv ./canister-core /app && \
+	cd /app && \
+	rm -rf build
+
+ENTRYPOINT [ "./canister-core" ]

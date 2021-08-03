@@ -22,7 +22,6 @@ set(HEADERS
 find_library(LIB_SOCKETS NAMES uSockets.a)
 find_library(LIB_DATE NAMES libdate-tz.a)
 find_library(LIB_CURLPP NAMES libcurlpp.a)
-find_package(nlohmann_json REQUIRED)
 find_package(nlohmann_json_schema_validator REQUIRED)
 
 add_executable(canister-core ${HEADERS} ${SOURCES})
@@ -39,7 +38,6 @@ target_link_libraries(canister-core
 	lzma
 	ssl
 	bz2
-	uv
 	z
 )
 
