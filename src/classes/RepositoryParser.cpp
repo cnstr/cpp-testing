@@ -1,5 +1,4 @@
 #include "RepositoryParser.hpp"
-#include <fstream>
 
 RepositoryParser::RepositoryParser(std::string url) {
 	this->url = url;
@@ -443,11 +442,31 @@ std::string RepositoryParser::curl_generic_url(std::string url) {
 			return value;
 		});
 
-		// Write the response data to the file and then return the file name
-		std::ofstream out("/tmp/" + file_name, std::ios::binary | std::ios::out);
-		out << response_data;
-		out.flush();
-		out.close();
+		// Here we have to decide if we need to actually update indexes or can exit out early
+		std::ifstream check_file("/tmp/" + file_name);
+		if (check_file.is_open()) {
+			// Converts our ifstream to a string using streambuf iterators
+			std::string cached_data = std::string((std::istreambuf_iterator<char>(check_file)), std::istreambuf_iterator<char>());
+
+			std::vector<unsigned char> cached_hash_vector(picosha2::k_digest_size);
+			picosha2::hash256(cached_data.begin(), cached_data.end(), cached_hash_vector.begin(), cached_hash_vector.end());
+			std::string cached_hash = picosha2::bytes_to_hex_string(cached_hash_vector.begin(), cached_hash_vector.end());
+
+			std::vector<unsigned char> response_hash_vector(picosha2::k_digest_size);
+			picosha2::hash256(response_data.begin(), response_data.end(), response_hash_vector.begin(), response_hash_vector.end());
+			std::string response_hash = picosha2::bytes_to_hex_string(response_hash_vector.begin(), response_hash_vector.end());
+
+			// Break out early because the repository hasn't changed
+			if (response_hash == cached_hash) {
+				return file_name;
+			}
+		} else {
+			// Write the response data to the file and then return the file name
+			std::ofstream out("/tmp/" + file_name, std::ios::binary | std::ios::out);
+			out << response_data;
+			out.flush();
+			out.close();
+		}
 
 		return file_name;
 	} catch (std::exception &exc) {

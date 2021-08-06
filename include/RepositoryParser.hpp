@@ -2,11 +2,13 @@
 #include <curlpp/cURLpp.hpp>
 #include <curlpp/Infos.hpp>
 #include <curlpp/Easy.hpp>
+#include <picosha2.h>
 #include <bzlib.h>
 #include <lzma.h>
 #include <zstd.h>
 #include <zlib.h>
 
+#include <fstream>
 #include <sstream>
 #include <thread>
 #include <future>
