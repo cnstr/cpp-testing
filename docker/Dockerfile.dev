@@ -39,7 +39,12 @@ RUN apt-get update \
 	&& make \
 	&& make install \
 	&& cd ../.. \
-	&& rm -rf date
+	&& rm -rf date \
+	&& git clone https://github.com/okdshin/PicoSHA2.git \
+	&& cd PicoSHA2 \
+	&& cp picosha2.h /usr/local/include \
+	&& cd .. \
+	&& rm -rf PicoSHA2
 COPY . .
 
 RUN mkdir build && \
